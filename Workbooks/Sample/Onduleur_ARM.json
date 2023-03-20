@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    },
+    "formattedTimeNow": {
+      "type": "string",
+      "defaultValue": "[utcNow('g')]",
+      "metadata": {
+        "description": "Appended to workbook displayNames to make them unique"
+      }
+    },
+    "workbook-id": {
+      "type": "string",
+      "defaultValue": "9042f5ed-09c7-457e-bf93-a79cc787155a",
+      "minLength": 1,
+      "metadata": {
+        "description": "Unique id for the workbook"
+      }
+    },
+    "workbook-name": {
+      "type": "string",
+      "defaultValue": "Onduleur",
+      "minLength": 1,
+      "metadata": {
+        "description": "Name for the workbook"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Insights/workbooks",
+      "name": "[parameters('workbook-id')]",
+      "location": "[resourceGroup().location]",
+      "kind": "shared",
+      "apiVersion": "2020-02-12",
+      "properties": {
+        "displayName": "[concat(parameters('workbook-name'), ' - ', parameters('formattedTimeNow'))]",
+        "serializedData": "{\"version\":\"Notebook/1.0\",\"items\":[{\"type\":9,\"content\":{\"version\":\"KqlParameterItem/1.0\",\"parameters\":[{\"id\":\"549817a0-4c9b-41f5-922b-993714473428\",\"version\":\"KqlParameterItem/1.0\",\"name\":\"Date\",\"type\":2,\"typeSettings\":{\"showDefault\":false},\"jsonData\":\"[{ \\\"value\\\": \\\"1\\\", \\\"label\\\": \\\"Aujourd'hui\\\", \\\"selected\\\":true },{ \\\"value\\\": \\\"2\\\", \\\"label\\\": \\\"Depuis 7 jours\\\" }]\",\"timeContext\":{\"durationMs\":86400000}},{\"id\":\"7e4a47a7-3cec-42ff-9433-4e06d2c7ccb8\",\"version\":\"KqlParameterItem/1.0\",\"name\":\"Historique\",\"type\":1,\"timeContext\":{\"durationMs\":86400000},\"value\":\"1d\"}],\"style\":\"pills\",\"queryType\":0,\"resourceType\":\"microsoft.operationalinsights/workspaces\"},\"name\":\"parameters - 3\"},{\"type\":12,\"content\":{\"version\":\"NotebookGroup/1.0\",\"groupType\":\"editable\",\"items\":[{\"type\":3,\"content\":{\"version\":\"KqlItem/1.0\",\"query\":\"Onduleur\\r\\n| extend hfilter = totimespan(1d)\\r\\n| extend Dfilter = iff(hfilter == \\\"1d\\\", startofday(now()), startofday(now(-hfilter)))\\r\\n//| extend Dfilter = case(1 == 2, startofday(now(-7d)),startofday(now()))\\r\\n| where Date >= Dfilter\\r\\n| summarize avg(SolarP/1000) by bin(Date,1h)\\r\\n| summarize sum(avg_)\\r\\n\",\"size\":4,\"showAnalytics\":true,\"title\":\"kWh today\",\"queryType\":0,\"resourceType\":\"microsoft.operationalinsights/workspaces\",\"visualization\":\"tiles\",\"tileSettings\":{\"titleContent\":{\"columnMatch\":\"sum_avg_\",\"formatter\":8,\"formatOptions\":{\"min\":1,\"max\":20,\"palette\":\"greenRed\",\"compositeBarSettings\":{\"labelText\":\"\",\"columnSettings\":[{\"columnName\":\"sum_avg_\",\"color\":\"blue\"}]}},\"numberFormat\":{\"unit\":0,\"options\":{\"style\":\"decimal\",\"maximumSignificantDigits\":3}}},\"showBorder\":false,\"size\":\"auto\"}},\"customWidth\":\"30\",\"name\":\"kwtoday\"},{\"type\":3,\"content\":{\"version\":\"KqlItem/1.0\",\"query\":\"Onduleur\\r\\n| summarize avg(LoadP) by bin(Date,1h)\\r\\n| project avg_LoadP\",\"size\":4,\"title\":\"Load\",\"timeContext\":{\"durationMs\":3600000},\"queryType\":0,\"resourceType\":\"microsoft.operationalinsights/workspaces\",\"visualization\":\"tiles\",\"tileSettings\":{\"leftContent\":{\"columnMatch\":\"avg_LoadP\",\"formatter\":18,\"formatOptions\":{\"thresholdsOptions\":\"colors\",\"thresholdsGrid\":[{\"operator\":\"<\",\"thresholdValue\":\"50\",\"representation\":\"green\",\"text\":\"{0}{1}\"},{\"operator\":\"<\",\"thresholdValue\":\"70\",\"representation\":\"orange\",\"text\":\"{0}{1}\"},{\"operator\":\">\",\"thresholdValue\":\"70\",\"representation\":\"redBright\",\"text\":\"{0}{1}\"},{\"operator\":\"Default\",\"text\":\"{0}{1}\"}]},\"numberFormat\":{\"unit\":1,\"options\":{\"style\":\"decimal\",\"maximumFractionDigits\":1}}},\"showBorder\":false,\"size\":\"auto\"}},\"customWidth\":\"25\",\"name\":\"loadP\"}]},\"name\":\"group - 7\"},{\"type\":3,\"content\":{\"version\":\"KqlItem/1.0\",\"query\":\"Onduleur\\r\\n| extend hfilter = totimespan({Historique})\\r\\n| extend Dfilter = iff(hfilter == \\\"1d\\\", startofday(now()), startofday(now(-hfilter)))\\r\\n//| extend Dfilter = case({Date} == 2, startofday(now(-7d)),startofday(now()))\\r\\n| where Date >= Dfilter\\r\\n| summarize by SolarP, bin(Date,1m)\",\"size\":0,\"showAnalytics\":true,\"title\":\"Solar power\",\"queryType\":0,\"resourceType\":\"microsoft.operationalinsights/workspaces\",\"visualization\":\"areachart\",\"tileSettings\":{\"leftContent\":{\"columnMatch\":\"max_BattCap\",\"formatter\":4,\"formatOptions\":{\"min\":0,\"max\":100,\"palette\":\"blue\"}},\"showBorder\":false}},\"customWidth\":\"50\",\"name\":\"solarp\",\"styleSettings\":{\"maxWidth\":\"50\"}},{\"type\":3,\"content\":{\"version\":\"KqlItem/1.0\",\"query\":\"Onduleur\\r\\n| extend Dfilter = case({Date} == 2, startofday(now(-7d)),startofday(now()))\\r\\n| where Date >= Dfilter\\r\\n| summarize by BattCap, bin(Date,1m)\",\"size\":0,\"showAnalytics\":true,\"title\":\"Battery capacity\",\"color\":\"green\",\"queryType\":0,\"resourceType\":\"microsoft.operationalinsights/workspaces\",\"visualization\":\"areachart\",\"chartSettings\":{\"ySettings\":{\"min\":0,\"max\":100}}},\"customWidth\":\"50\",\"name\":\"batcapacity\",\"styleSettings\":{\"maxWidth\":\"50\"}},{\"type\":3,\"content\":{\"version\":\"KqlItem/1.0\",\"query\":\"Onduleur\\r\\n| extend Dfilter = case({Date} == 2, startofday(now(-7d)),startofday(now()))\\r\\n| where Date >= Dfilter\\r\\n| summarize by OutW, bin(Date,1m)\",\"size\":0,\"showAnalytics\":true,\"title\":\"Power used\",\"color\":\"orange\",\"queryType\":0,\"resourceType\":\"microsoft.operationalinsights/workspaces\",\"visualization\":\"areachart\",\"gridSettings\":{\"formatters\":[{\"columnMatch\":\"Date\",\"formatter\":6}]}},\"customWidth\":\"50\",\"name\":\"powerused\",\"styleSettings\":{\"maxWidth\":\"50\"}},{\"type\":3,\"content\":{\"version\":\"KqlItem/1.0\",\"query\":\"let start = startofday(ago(14d));\\r\\nlet end = startofday(now());\\r\\nlet interval = 1h;\\r\\nlet interval2 = 1d;\\r\\nOnduleur\\r\\n| where Date between (start .. end)\\r\\n| where SolarP > 0\\r\\n| summarize avg(SolarP / 1000), max(Date) by bin(Date, interval)\\r\\n| summarize kWh=sum(avg_), Date=max(Date) by bin(Date, interval2)\\r\\n| extend Date=format_datetime(Date, \\\"dd-MM\\\")\\r\\n| sort by Date1 asc \",\"size\":0,\"showAnalytics\":true,\"title\":\"Produced power (last 14 days)\",\"queryType\":0,\"resourceType\":\"microsoft.operationalinsights/workspaces\",\"visualization\":\"barchart\",\"tileSettings\":{\"titleContent\":{\"columnMatch\":\"Date\",\"formatter\":1},\"leftContent\":{\"columnMatch\":\"kWh\",\"formatter\":8,\"formatOptions\":{\"palette\":\"auto\"},\"numberFormat\":{\"unit\":17,\"options\":{\"style\":\"decimal\",\"maximumFractionDigits\":2,\"maximumSignificantDigits\":3}}},\"showBorder\":false,\"sortCriteriaField\":\"Date\",\"sortOrderField\":1},\"graphSettings\":{\"type\":0,\"topContent\":{\"columnMatch\":\"Date\",\"formatter\":1},\"centerContent\":{\"columnMatch\":\"kWh\",\"formatter\":1,\"numberFormat\":{\"unit\":17,\"options\":{\"maximumSignificantDigits\":3,\"maximumFractionDigits\":2}}}},\"chartSettings\":{\"xAxis\":\"Date\",\"yAxis\":[\"kWh\"],\"ySettings\":{\"numberFormatSettings\":{\"unit\":0,\"options\":{\"style\":\"decimal\",\"useGrouping\":true}}}}},\"customWidth\":\"50\",\"name\":\"producedpower\"}],\"fallbackResourceIds\":[\"/subscriptions/55064a2f-5ccb-4615-bd4c-3032db496581/resourcegroups/rscorp/providers/microsoft.operationalinsights/workspaces/lawcorp\"],\"fromTemplateId\":\"sentinel-UserWorkbook\",\"$schema\":\"https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json\"}\r\n",
+        "version": "1.0",
+        "sourceId": "[concat(resourceGroup().id, '/providers/Microsoft.OperationalInsights/workspaces/',parameters('workspace'))]",
+        "category": "sentinel",
+        "etag": "*"
+      }
+    }
+  ]
+}
