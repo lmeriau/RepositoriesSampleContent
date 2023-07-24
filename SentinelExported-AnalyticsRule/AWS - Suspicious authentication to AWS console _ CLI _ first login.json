@@ -1,0 +1,75 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/b8684502-c44d-45f1-b1ed-e5dae891bee8')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/b8684502-c44d-45f1-b1ed-e5dae891bee8')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "AWS - Suspicious authentication to AWS console / CLI : first login",
+        "description": "",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "Account",
+            "fieldMappings": [
+              {
+                "columnName": "UserPrincipalName",
+                "identifier": "FullName"
+              }
+            ]
+          },
+          {
+            "entityType": "SecurityGroup",
+            "fieldMappings": [
+              {
+                "columnName": "DirectoryRole",
+                "identifier": "DistinguishedName"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": {
+          "aggregationKind": "SingleAlert"
+        },
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": [],
+            "groupByCustomDetails": [],
+            "groupByEntities": [],
+            "lookbackDuration": "PT5H",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "AWSCloudTrail\r\n| where EventName contains \"Login\" and UserIdentityType != \"Unknown\"\r\n| extend UserPrincipalName = tostring(split(UserIdentityPrincipalid,':')[1]), DirectoryRole = tostring(split(SessionIssuerUserName,'_')[1])\r\n| extend userole = strcat(UserPrincipalName,\"-\",DirectoryRole)\r\n| where TimeGenerated > startofday(ago(30d))\r\n| summarize count(), firstlogin = max(TimeGenerated), lastlogin = min(TimeGenerated), UserPrincipalName = any(UserPrincipalName), DirectoryRole = any(DirectoryRole) by userole\r\n| extend firstlastdiif =  datetime_diff( 'day', firstlogin, lastlogin)\r\n| where count_ == 1\r\n| project-away firstlogin, userole, firstlastdiif, count_",
+        "queryPeriod": "P1D",
+        "queryFrequency": "P1D",
+        "sentinelEntitiesMappings": null,
+        "severity": "Medium",
+        "suppressionDuration": "PT5H",
+        "suppressionEnabled": false,
+        "tactics": [
+          "InitialAccess"
+        ],
+        "techniques": null,
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": null,
+        "enabled": true
+      }
+    }
+  ]
+}
