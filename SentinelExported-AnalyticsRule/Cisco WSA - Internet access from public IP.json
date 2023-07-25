@@ -1,0 +1,64 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/87975dc7-fc86-4cf9-b995-280bbff576dc')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/87975dc7-fc86-4cf9-b995-280bbff576dc')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "Cisco WSA - Internet access from public IP",
+        "description": "Detects internet access from public IP.",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "IP",
+            "fieldMappings": [
+              {
+                "columnName": "IPCustomEntity",
+                "identifier": "Address"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": null,
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": null,
+            "groupByCustomDetails": null,
+            "groupByEntities": [],
+            "lookbackDuration": "PT5M",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "let ip_except = dynamic(['127.0.0.2']);    //Add exceptions to this list\nCiscoWSAEvent\n| where ipv4_is_private(SrcIpAddr) == false\n| extend IPCustomEntity = SrcIpAddr\n",
+        "queryPeriod": "PT1H",
+        "queryFrequency": "PT1H",
+        "sentinelEntitiesMappings": null,
+        "severity": "Medium",
+        "suppressionDuration": "PT1H",
+        "suppressionEnabled": false,
+        "tactics": [
+          "InitialAccess"
+        ],
+        "techniques": null,
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": null,
+        "enabled": false
+      }
+    }
+  ]
+}
