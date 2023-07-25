@@ -1,0 +1,64 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/f103c3d2-fb42-453d-a65b-b91cbc786ab5')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/f103c3d2-fb42-453d-a65b-b91cbc786ab5')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "Azure AD - AD - Abnormally high number of failed logins - [Final_V1.1]",
+        "description": "",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "Account",
+            "fieldMappings": [
+              {
+                "columnName": "username",
+                "identifier": "FullName"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": {
+          "aggregationKind": "SingleAlert"
+        },
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": [],
+            "groupByCustomDetails": [],
+            "groupByEntities": [],
+            "lookbackDuration": "PT5H",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "let failureThreshold = 10;\r\nlet timeframe = 20;\r\nlet AD_UsersWithHighNumOfFailures =\r\n\tSecurityEvent\r\n\t| summarize failureCount = countif(EventID == \"4625\") by TargetUserName\r\n\t| where failureCount >= failureThreshold\r\n\t| distinct TargetUserName\r\n;\r\nlet AAD_UsersWithHighNumOfFailures =\r\n\tSigninLogs\r\n\t| summarize failureCount = countif(ResultType == \"50126\") by UserPrincipalName\r\n\t| where failureCount >= failureThreshold\r\n\t| distinct UserPrincipalName\r\n;\r\nlet AAD_AuthenticatedUserActivity =\r\n\tSigninLogs\r\n\t| where ResultType == \"0\" and UserPrincipalName in (AAD_UsersWithHighNumOfFailures)\r\n\t| where TimeGenerated > ago(1h)\r\n\t| extend id = new_guid(), ref_timestamp = TimeGenerated, username = UserPrincipalName\r\n\t| project id, ref_timestamp, username\r\n\t| join kind=leftouter (\r\n\t\tSigninLogs\r\n\t\t| where ResultType == \"0\" or ResultType == \"50126\"\r\n\t\t| extend actionStatus = iff(ResultType == \"0\", \"Success\", \"Failure\"), username = UserPrincipalName\r\n\t\t| summarize timestamps = make_list(TimeGenerated), actionStatuses = make_list(actionStatus) by username\r\n\t\t| project username, array_sort_desc(timestamps, actionStatuses)\r\n\t)\r\n\ton username\r\n;\r\n// AD_AuthenticatedUserActivity\r\nSecurityEvent\r\n| where EventID == \"4624\" and TargetUserName in (AD_UsersWithHighNumOfFailures)\r\n| where TimeGenerated > ago(1h)\r\n| extend id = new_guid(), ref_timestamp = TimeGenerated, username = TargetUserName\r\n| project id, ref_timestamp, username\r\n| join kind=leftouter (\r\n\tSecurityEvent\r\n\t| where EventID == \"4624\" or EventID == \"4625\"\r\n\t| extend actionStatus = iff(EventID == \"4624\", \"Success\", \"Failure\"), username = TargetUserName\r\n\t| summarize timestamps = make_list(TimeGenerated), actionStatuses = make_list(actionStatus) by username\r\n\t| project username, array_sort_desc(timestamps, actionStatuses)\r\n)\r\non username\r\n| union kind=outer AAD_AuthenticatedUserActivity\r\n// SuccessAfterMultipleFailures\r\n| mv-expand timestamps_sorted, actionStatuses_sorted\r\n| project id, ref_timestamp, username, timestamp = todatetime(timestamps_sorted), actionStatus = tostring(actionStatuses_sorted)\r\n| extend timestamp_diff = datetime_diff(\"minute\", ref_timestamp, timestamp)\r\n| where timestamp_diff >= 0 and timestamp_diff <= timeframe\r\n| summarize failureCount = countif(actionStatus == \"Failure\"), timestamps = make_list(timestamp), actionStatuses = make_list(actionStatus) by id, username\r\n| where actionStatuses[0] == \"Success\" and failureCount >= failureThreshold\r\n| extend max_timestamp = todatetime(timestamps[0])\r\n| summarize arg_max(max_timestamp, *) by username, failureCount\r\n| summarize arg_max(failureCount, *) by username\r\n| project max_timestamp, username, failureCount",
+        "queryPeriod": "PT2H",
+        "queryFrequency": "PT1H",
+        "sentinelEntitiesMappings": null,
+        "severity": "Medium",
+        "suppressionDuration": "PT5H",
+        "suppressionEnabled": false,
+        "tactics": [],
+        "techniques": null,
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": null,
+        "enabled": true
+      }
+    }
+  ]
+}
