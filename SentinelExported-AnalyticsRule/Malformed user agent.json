@@ -1,0 +1,81 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/13a339d7-115b-4572-965d-bf445799acec')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/13a339d7-115b-4572-965d-bf445799acec')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "Malformed user agent",
+        "description": "Malware authors will sometimes hardcode user agent string values when writing the network communication component of their malware.\nMalformed user agents can be an indication of such malware.",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "Account",
+            "fieldMappings": [
+              {
+                "columnName": "AccountCustomEntity",
+                "identifier": "FullName"
+              }
+            ]
+          },
+          {
+            "entityType": "IP",
+            "fieldMappings": [
+              {
+                "columnName": "IPCustomEntity",
+                "identifier": "Address"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": {
+          "aggregationKind": "SingleAlert"
+        },
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": null,
+            "groupByCustomDetails": null,
+            "groupByEntities": [],
+            "lookbackDuration": "PT5H",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "let endtime = 1d;\n(union isfuzzy=true\n(OfficeActivity | where TimeGenerated >= ago(endtime) | where UserAgent != \"\"),\n(OfficeActivity\n| where TimeGenerated >= ago(endtime)\n| where RecordType in (\"AzureActiveDirectoryAccountLogon\", \"AzureActiveDirectoryStsLogon\")\n| extend OperationName = Operation, UserAgent = extractjson(\"$[0].Value\", ExtendedProperties, typeof(string))),\n(AzureDiagnostics\n| where TimeGenerated >= ago(endtime)\n| where ResourceType =~ \"APPLICATIONGATEWAYS\" \n| where OperationName =~ \"ApplicationGatewayAccess\" \n| extend ClientIP = columnifexists(\"clientIP_s\", \"None\"), UserAgent = columnifexists(\"userAgent_s\", \"None\")))\n// Likely artefact of hardcoding\n| where UserAgent startswith \"User\" or UserAgent startswith \"\\\"\"\n// Incorrect casing\nor (UserAgent startswith \"Mozilla\" and not(UserAgent containscs \"Mozilla\"))\n// Incorrect casing\nor UserAgent containscs  \"(Compatible;\"\n// Missing MSIE version\nor UserAgent matches regex @\"MSIE\\s?;\"\n// Incorrect spacing around MSIE version\nor UserAgent matches regex  @\"MSIE(?:\\d|.{1,5}?\\d\\s;)\"\n| summarize StartTimeUtc = min(TimeGenerated), EndTimeUtc = max(TimeGenerated), OperationNames = makeset(OperationName), UserAgentCount = dcount(UserAgent), \nUserAgentList = makeset(UserAgent), RecordTypes = makeset(RecordType) by UserId, ClientIP\n| extend timestamp = StartTimeUtc, IPCustomEntity = ClientIP, AccountCustomEntity = UserId",
+        "queryPeriod": "P1D",
+        "queryFrequency": "P1D",
+        "sentinelEntitiesMappings": null,
+        "severity": "Medium",
+        "suppressionDuration": "PT5H",
+        "suppressionEnabled": false,
+        "tactics": [
+          "InitialAccess",
+          "CommandAndControl",
+          "Execution"
+        ],
+        "techniques": [
+          "T1189",
+          "T1071",
+          "T1203"
+        ],
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": "a357535e-f722-4afe-b375-cff362b2b376",
+        "enabled": true
+      }
+    }
+  ]
+}
