@@ -1,0 +1,75 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/04df6c21-2296-42eb-8927-c2dc951ef30a')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/04df6c21-2296-42eb-8927-c2dc951ef30a')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "Azure AD - New App Registration",
+        "description": "",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "Account",
+            "fieldMappings": [
+              {
+                "columnName": "AccountCustomEntity",
+                "identifier": "FullName"
+              }
+            ]
+          },
+          {
+            "entityType": "IP",
+            "fieldMappings": [
+              {
+                "columnName": "IPCustomEntity",
+                "identifier": "Address"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": {
+          "aggregationKind": "SingleAlert"
+        },
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": true,
+            "groupByAlertDetails": [],
+            "groupByCustomDetails": [],
+            "groupByEntities": [],
+            "lookbackDuration": "P5D",
+            "matchingMethod": "AnyAlert",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "AuditLogs\r\n  | where OperationName has_any (\"Add service principal\", \"Certificates and secrets management\") // captures \"Add service principal\", \"Add service principal credentials\", and \"Update application - Certificates and secrets management\" events\r\n  | where Result =~ \"success\"\r\n  | mv-expand target = TargetResources\r\n    | extend targetDisplayName = tostring(TargetResources[0].displayName)\r\n  | extend targetId = tostring(TargetResources[0].id)\r\n  | extend targetType = tostring(TargetResources[0].type)\r\n  | extend keyEvents = TargetResources[0].modifiedProperties\r\n  | mv-expand keyEvents\r\n    | extend new_value_set = parse_json(tostring(keyEvents.newValue))\r\n  | extend old_value_set = parse_json(tostring(keyEvents.oldValue))\r\n  | where old_value_set != \"[]\"\r\n  | extend diff = set_difference(new_value_set, old_value_set)\r\n  | where isnotempty(diff)\r\n  | parse diff with * \"KeyIdentifier=\" keyIdentifier:string \",KeyType=\" keyType:string \",KeyUsage=\" keyUsage:string \",DisplayName=\" keyDisplayName:string \"]\" *\r\n  | where keyUsage == \"Verify\"  or keyUsage == \"\"\r\n  | extend UserAgent = iff(AdditionalDetails[0].key == \"User-Agent\",tostring(AdditionalDetails[0].value),\"\")\r\n  | extend InitiatingUserOrApp = iff(isnotempty(InitiatedBy.user.userPrincipalName),tostring(InitiatedBy.user.userPrincipalName), tostring(InitiatedBy.app.displayName))\r\n  | extend InitiatingIpAddress = iff(isnotempty(InitiatedBy.user.ipAddress), tostring(InitiatedBy.user.ipAddress), tostring(InitiatedBy.app.ipAddress))\r\n  // The below line is currently commented out but Microsoft Sentinel users can modify this query to show only Application or only Service Principal events in their environment\r\n  //| where targetType =~ \"Application\" // or targetType =~ \"ServicePrincipal\"\r\n  | project-away diff, new_value_set, old_value_set\r\n  | project-reorder TimeGenerated, OperationName, InitiatingUserOrApp, InitiatingIpAddress, UserAgent, targetDisplayName, targetId, targetType, keyDisplayName, keyType, keyUsage, keyIdentifier, CorrelationId, TenantId\r\n  | extend timestamp = TimeGenerated, AccountCustomEntity = InitiatingUserOrApp, IPCustomEntity = InitiatingIpAddress",
+        "queryPeriod": "PT1H",
+        "queryFrequency": "PT1H",
+        "sentinelEntitiesMappings": null,
+        "severity": "Medium",
+        "suppressionDuration": "PT5H",
+        "suppressionEnabled": false,
+        "tactics": [
+          "Persistence"
+        ],
+        "techniques": null,
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": null,
+        "enabled": true
+      }
+    }
+  ]
+}
