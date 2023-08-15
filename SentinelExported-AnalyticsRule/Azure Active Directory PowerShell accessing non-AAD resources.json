@@ -1,0 +1,77 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/f0626aa7-adf7-401f-a162-02db6f9b5afb')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/f0626aa7-adf7-401f-a162-02db6f9b5afb')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "Azure Active Directory PowerShell accessing non-AAD resources",
+        "description": "This will alert when an user or application signs in using Azure Active Directory PowerShell to access non-Active Directory resources, such as the Azure Key Vault, which may be undesired or unauthorized behavior.\nFor capabilities and expected behavior of the Azure Active Directory PowerShell module, see: https://docs.microsoft.com/powershell/module/azuread/?view=azureadps-2.0.\nFor further information on Azure Active Directory Signin activity reports, see: https://docs.microsoft.com/azure/active-directory/reports-monitoring/concept-sign-ins.",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "Account",
+            "fieldMappings": [
+              {
+                "columnName": "AccountCustomEntity",
+                "identifier": "FullName"
+              }
+            ]
+          },
+          {
+            "entityType": "IP",
+            "fieldMappings": [
+              {
+                "columnName": "IPCustomEntity",
+                "identifier": "Address"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": {
+          "aggregationKind": "SingleAlert"
+        },
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": null,
+            "groupByCustomDetails": null,
+            "groupByEntities": [],
+            "lookbackDuration": "PT5H",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "let auditLookback = 1h;\nSigninLogs\n| where TimeGenerated > ago(auditLookback)\n| where AppId =~ \"1b730954-1685-4b74-9bfd-dac224a7b894\" // AppDisplayName IS Azure Active Directory PowerShell\n| where TokenIssuerType =~ \"AzureAD\"\n| where ResourceIdentity !in (\"00000002-0000-0000-c000-000000000000\", \"00000003-0000-0000-c000-000000000000\") // ResourceDisplayName IS NOT Windows Azure Active Directory OR Microsoft Graph\n| where Status.errorCode == 0 // Success\n| project-reorder IPAddress, UserAgent, ResourceDisplayName, UserDisplayName, UserId, UserPrincipalName\n| order by TimeGenerated desc\n// New entity mapping\n| extend timestamp = TimeGenerated, AccountCustomEntity = UserPrincipalName, IPCustomEntity = IPAddress",
+        "queryPeriod": "PT1H",
+        "queryFrequency": "PT1H",
+        "sentinelEntitiesMappings": null,
+        "severity": "Low",
+        "suppressionDuration": "PT5H",
+        "suppressionEnabled": false,
+        "tactics": [
+          "InitialAccess"
+        ],
+        "techniques": [
+          "T1078"
+        ],
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": "50574fac-f8d1-4395-81c7-78a463ff0c52",
+        "enabled": true
+      }
+    }
+  ]
+}
