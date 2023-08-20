@@ -1,0 +1,74 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/9d771152-57bc-4acc-a5cf-b2a3b5dcd543')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/9d771152-57bc-4acc-a5cf-b2a3b5dcd543')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "Cisco WSA - Multiple errors to resource from risky category",
+        "description": "Detects multiple connection errors to resource from risky category.",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "URL",
+            "fieldMappings": [
+              {
+                "columnName": "URLCustomEntity",
+                "identifier": "Url"
+              }
+            ]
+          },
+          {
+            "entityType": "Account",
+            "fieldMappings": [
+              {
+                "columnName": "AccountCustomEntity",
+                "identifier": "Name"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": null,
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": null,
+            "groupByCustomDetails": null,
+            "groupByEntities": [],
+            "lookbackDuration": "PT5M",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "let threshold = 10;\nlet risky_sites = dynamic(['IW_adlt', 'IW_hack', 'IW_porn']);\nCiscoWSAEvent\n| where DvcAction startswith 'BLOCK_'\n| where UrlCategory in~ (risky_sites)\n| summarize count() by SrcUserName, UrlOriginal, bin(TimeGenerated, 5m)\n| where count_ >= threshold\n| extend URLCustomEntity = UrlOriginal, AccountCustomEntity = SrcUserName\n",
+        "queryPeriod": "PT1H",
+        "queryFrequency": "PT1H",
+        "sentinelEntitiesMappings": null,
+        "severity": "Medium",
+        "suppressionDuration": "PT1H",
+        "suppressionEnabled": false,
+        "tactics": [
+          "InitialAccess",
+          "CommandAndControl"
+        ],
+        "techniques": null,
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": null,
+        "enabled": false
+      }
+    }
+  ]
+}
