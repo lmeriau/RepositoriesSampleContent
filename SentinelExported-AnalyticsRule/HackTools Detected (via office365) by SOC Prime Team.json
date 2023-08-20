@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/ab814a8e-a0e9-11eb-89ea-029778b6f45f')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/ab814a8e-a0e9-11eb-89ea-029778b6f45f')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "HackTools Detected (via office365) by SOC Prime Team",
+        "description": "Detects hacktool names, like empire scripts etc. Technique: T1204.",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": null,
+        "eventGroupingSettings": null,
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": null,
+            "groupByCustomDetails": null,
+            "groupByEntities": [],
+            "lookbackDuration": "PT5M",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "OfficeActivity | where ((Operation == \"FileUploaded\" or Operation == \"FileAccessed\" or Operation == \"FileDownloaded\") and (SourceFileName contains \"Obfuscation\" or SourceFileName contains \"PowerShellLauncher\" or SourceFileName contains \"EncodedAsciiCommand\" or SourceFileName contains \"EncodedHexCommand\" or SourceFileName contains \"EncodedBXORCommand\" or SourceFileName contains \"EncodedWhitespaceCommand\" or SourceFileName contains \"EncodedBinaryCommand\" or SourceFileName contains \"EncodedOctalCommand\" or SourceFileName contains \"EncodedSpecialCharOnlyCommand\" or SourceFileName contains \"SecureStringCommand\" or SourceFileName contains \"ObfuscatedStringCommand\" or SourceFileName contains \"ObfuscatedTokenCommand\" or SourceFileName contains \"Obfuscated\" or SourceFileName contains \"ToObfuscate\" or SourceFileName contains \"EternalBlue\" or SourceFileName contains \"PostExfil\" or SourceFileName contains \"ExfilDataToGitHub\" or SourceFileName contains \"EgressCheck\" or SourceFileName contains \"NetRipper\" or SourceFileName contains \"Minidump\" or SourceFileName contains \"SQLColumnSampleData\" or SourceFileName contains \"Inveigh\" or SourceFileName contains \"FoxDump\" or SourceFileName contains \"USBKeystrokes\" or SourceFileName contains \"NinjaCopy\" or SourceFileName contains \"SQLQuery\" or SourceFileName contains \"Keystrokes\" or SourceFileName contains \"KeePassConfig\" or SourceFileName contains \"KeeThief\" or SourceFileName contains \"BrowserData\" or SourceFileName contains \"ClipboardContents\" or SourceFileName contains \"IndexedItem\" or SourceFileName contains \"ChromeDump\" or SourceFileName contains \"TrustedDocuments\" or SourceFileName contains \"Paranoia\" or SourceFileName contains \"MonitorTCPConnections\" or SourceFileName contains \"WinEnum\" or SourceFileName contains \"ComputerDetails\" or SourceFileName contains \"SystemDNSServer\" or SourceFileName contains \"powerview\" or SourceFileName contains \"BloodHound\" or SourceFileName contains \"ARPScan\" or SourceFileName contains \"SQLServerInfo\" or SourceFileName contains \"SMBAutoBrute\" or SourceFileName contains \"SQLInstanceDomain\" or SourceFileName contains \"ReverseDNSLookup\" or SourceFileName contains \"SmbScanner\" or SourceFileName contains \"Portscan\" or SourceFileName contains \"MacAttribute\" or SourceFileName contains \"MailRaider\" or SourceFileName contains \"HoneyHash\" or SourceFileName contains \"PSInject\" or SourceFileName contains \"ReflectivePEInjection\" or SourceFileName contains \"Thunderstruck\" or SourceFileName contains \"VoiceTroll\" or SourceFileName contains \"InveighRelay\" or SourceFileName contains \"SSHCommand\" or SourceFileName contains \"SQLOSCmd\" or SourceFileName contains \"PsExec\" or SourceFileName contains \"ExecuteMSBuild\" or SourceFileName contains \"SMBExec\" or SourceFileName contains \"PowerBreach\" or SourceFileName contains \"BackdoorLNK\" or SourceFileName contains \"SecurityPackages\" or SourceFileName contains \"RickAstley\" or SourceFileName contains \"MetasploitPayload\" or SourceFileName contains \"ShellcodeMSIL\" or SourceFileName contains \"Shellcode\" or SourceFileName contains \"ReflectivePEInjection\" or SourceFileName contains \"DllInjection\" or SourceFileName contains \"SQLServerLoginDefaultPw\" or SourceFileName contains \"SiteListPassword\" or SourceFileName contains \"BypassUAC\" or SourceFileName contains \"GPPPassword\" or SourceFileName contains \"BypassUACTokenManipulation\" or SourceFileName contains \"EventVwrBypass\" or SourceFileName contains \"SDCLTBypass\" or SourceFileName contains \"MS16135\" or SourceFileName contains \"EnvBypass\" or SourceFileName contains \"FodHelperBypass\" or SourceFileName contains \"WScriptBypassUAC\" or SourceFileName contains \"MS16032\" or SourceFileName contains \"PowerUp\" or SourceFileName contains \"Mimikatz\" or SourceFileName contains \"Kerberoast\" or SourceFileName contains \"SessionGopher\" or SourceFileName contains \"CredentialInjection\" or SourceFileName contains \"dumpCredStore\" or SourceFileName contains \"TokenManipulation\" or SourceFileName contains \"DCSync\" or SourceFileName contains \"VaultCredential\" or SourceFileName contains \"PowerDump\" or SourceFileName contains \"http_com\" or SourceFileName contains \"http_mapi\" or SourceFileName contains \"DomainSPNTicket\" or SourceFileName contains \"SPNTicket\"))",
+        "queryPeriod": "PT12H",
+        "queryFrequency": "PT12H",
+        "sentinelEntitiesMappings": null,
+        "severity": "High",
+        "suppressionDuration": "PT12H",
+        "suppressionEnabled": true,
+        "tactics": [
+          "Execution"
+        ],
+        "techniques": null,
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": null,
+        "enabled": true
+      }
+    }
+  ]
+}
