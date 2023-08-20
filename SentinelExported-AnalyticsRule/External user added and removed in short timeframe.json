@@ -1,0 +1,68 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/c5d09d8c-d1bb-4930-af86-0577eac3d957')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/c5d09d8c-d1bb-4930-af86-0577eac3d957')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "External user added and removed in short timeframe",
+        "description": "This detection flags the occurances of external user accounts that are added to a Team and then removed within\none hour.",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "Account",
+            "fieldMappings": [
+              {
+                "columnName": "AccountCustomEntity",
+                "identifier": "FullName"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": {
+          "aggregationKind": "SingleAlert"
+        },
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": [],
+            "groupByCustomDetails": [],
+            "groupByEntities": [],
+            "lookbackDuration": "PT5H",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "OfficeActivity\n| where OfficeWorkload =~ \"MicrosoftTeams\"\n| where Operation =~ \"MemberAdded\"\n| extend UPN = tostring(parse_json(Members)[0].UPN)\n| where UPN contains (\"#EXT#\")\n| project TimeAdded=TimeGenerated, Operation, UPN, UserWhoAdded = UserId, TeamName\n| join (\n OfficeActivity\n| where OfficeWorkload =~ \"MicrosoftTeams\"\n| where Operation =~ \"MemberRemoved\"\n| extend UPN = tostring(parse_json(Members)[0].UPN)\n| where UPN contains (\"#EXT#\")\n| project TimeDeleted=TimeGenerated, Operation, UPN, UserWhoDeleted = UserId, TeamName\n) on UPN\n| where TimeDeleted > TimeAdded\n| project TimeAdded, TimeDeleted, UPN, UserWhoAdded, UserWhoDeleted, TeamName\n| extend timestamp = TimeAdded, AccountCustomEntity = UPN",
+        "queryPeriod": "PT1H",
+        "queryFrequency": "PT1H",
+        "sentinelEntitiesMappings": null,
+        "severity": "Low",
+        "suppressionDuration": "PT5H",
+        "suppressionEnabled": false,
+        "tactics": [
+          "Persistence"
+        ],
+        "techniques": [
+          "T1136"
+        ],
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": "bff093b2-500e-4ae5-bb49-a5b1423cbd5b",
+        "enabled": true
+      }
+    }
+  ]
+}
