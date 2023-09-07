@@ -1,0 +1,64 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/c3dd082f-a12d-427f-9979-ebb42e98b1e4')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/c3dd082f-a12d-427f-9979-ebb42e98b1e4')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "AWS - Successful administrator logins outside working hours - [Final_V1.0]",
+        "description": "",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "Account",
+            "fieldMappings": [
+              {
+                "columnName": "UserPrincipalName",
+                "identifier": "FullName"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": {
+          "aggregationKind": "SingleAlert"
+        },
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": [],
+            "groupByCustomDetails": [],
+            "groupByEntities": [],
+            "lookbackDuration": "PT5H",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "let startHour = 5;\r\nlet endHour = 20;\r\nAWSCloudTrail\r\n| where EventName contains \"login\"\r\n| extend hour = datetime_part(\"hour\", TimeGenerated)\r\n| extend dayNum = dayofweek(TimeGenerated)\r\n| extend dayName = case(\r\n\tdayNum == \"0.00:00:00\", \"Sun\",\r\n\tdayNum == \"1.00:00:00\", \"Mon\",\r\n\tdayNum == \"2.00:00:00\", \"Tue\",\r\n\tdayNum == \"3.00:00:00\", \"Wed\",\r\n\tdayNum == \"4.00:00:00\", \"Thu\",\r\n\tdayNum == \"5.00:00:00\", \"Fri\",\r\n\t\"Sat\"\r\n)\r\n| where (hour >= endHour or hour <= startHour) or (dayName in (\"Sat\", \"Sun\"))\r\n| where parse_json(ResponseElements).ConsoleLogin <> \"Failure\"\r\n| extend UserPrincipalName = tostring(split(UserIdentityPrincipalid,':')[1]), DirectoryRole = tostring(split(SessionIssuerUserName,'_')[1])\r\n| summarize arg_max(TimeGenerated, *) by UserPrincipalName\r\n| extend completeDate = strcat(dayName, \" \", format_datetime(TimeGenerated, \"dd/MM/yyyy HH:mm:ss\"))\r\n| project completeDate, UserPrincipalName",
+        "queryPeriod": "P1D",
+        "queryFrequency": "P1D",
+        "sentinelEntitiesMappings": null,
+        "severity": "Medium",
+        "suppressionDuration": "PT5H",
+        "suppressionEnabled": false,
+        "tactics": [],
+        "techniques": null,
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": null,
+        "enabled": true
+      }
+    }
+  ]
+}
