@@ -1,0 +1,70 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/1eabdd84-adc4-46db-a985-0b0774496838')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/1eabdd84-adc4-46db-a985-0b0774496838')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "Rare and potentially high-risk Office operations",
+        "description": "Identifies Office operations that are typically rare and can provide capabilities useful to attackers.",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "Account",
+            "fieldMappings": [
+              {
+                "columnName": "AccountCustomEntity",
+                "identifier": "FullName"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": {
+          "aggregationKind": "SingleAlert"
+        },
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": null,
+            "groupByCustomDetails": null,
+            "groupByEntities": [],
+            "lookbackDuration": "PT5H",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "let timeframe = 1d;\nOfficeActivity\n| where TimeGenerated >= ago(timeframe)\n| where Operation in~ ( \"Add-MailboxPermission\", \"Add-MailboxFolderPermission\", \"Set-Mailbox\", \"New-ManagementRoleAssignment\")\nand not(UserId has_any ('NT AUTHORITY\\\\SYSTEM (Microsoft.Exchange.ServiceHost)','devilfish-applicationaccount') and Operation in~ ( \"Add-MailboxPermission\", \"Set-Mailbox\"))\n| extend timestamp = TimeGenerated, AccountCustomEntity = UserId, IPCustomIdentity = ClientIP",
+        "queryPeriod": "P1D",
+        "queryFrequency": "P1D",
+        "sentinelEntitiesMappings": null,
+        "severity": "Low",
+        "suppressionDuration": "PT5H",
+        "suppressionEnabled": false,
+        "tactics": [
+          "Persistence",
+          "Collection"
+        ],
+        "techniques": [
+          "T1098",
+          "T1114"
+        ],
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": "957cb240-f45d-4491-9ba5-93430a3c08be",
+        "enabled": true
+      }
+    }
+  ]
+}
