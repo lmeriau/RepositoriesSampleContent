@@ -1,0 +1,77 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/6aec5103-de0d-481b-80e3-4ac0ac2c9545')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/6aec5103-de0d-481b-80e3-4ac0ac2c9545')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "Failed login attempts to Azure Portal",
+        "description": "Identifies failed login attempts in the Azure Active Directory SigninLogs to the Azure Portal.  Multiple failed logon \nattempts could indicate a potential brute force attack.  We exclude the following success and non-failure results:\nReferences: https://docs.microsoft.com/en-us/azure/active-directory/reports-monitoring/reference-sign-ins-error-codes\n0 - successful logon\n50125 - Sign-in was interrupted due to a password reset or password registration entry.\n50140 - This error occurred due to 'Keep me signed in' interrupt when the user was signing-in.",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "Account",
+            "fieldMappings": [
+              {
+                "columnName": "AccountCustomEntity",
+                "identifier": "FullName"
+              }
+            ]
+          },
+          {
+            "entityType": "IP",
+            "fieldMappings": [
+              {
+                "columnName": "IPCustomEntity",
+                "identifier": "Address"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": {
+          "aggregationKind": "SingleAlert"
+        },
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": null,
+            "groupByCustomDetails": null,
+            "groupByEntities": [],
+            "lookbackDuration": "PT5H",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "let timeRange = 1d;\nSigninLogs\n| where TimeGenerated >= ago(timeRange)\n| extend OS = DeviceDetail.operatingSystem, Browser = DeviceDetail.browser\n| extend StatusCode = tostring(Status.errorCode), StatusDetails = tostring(Status.additionalDetails)\n| where AppDisplayName contains \"Azure Portal\"\n// Exclude non-failure types\n| where ResultType !in (\"0\", \"50125\", \"50140\")\n// Removing unresolved identities that don't provide status\n| where isnotempty(StatusDetails) and isnotempty(Location) and not(Identity matches regex \"[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}\")\n| extend Status = strcat(StatusCode, \": \", ResultDescription) \n| summarize StartTimeUtc = min(TimeGenerated), EndTimeUtc = max(TimeGenerated), Status = makelist(Status), StatusDetails = makelist(StatusDetails), IPAddresses = makelist(IPAddress), IPAddressCount = dcount(IPAddress)\nby UserPrincipalName, AppDisplayName, tostring(Browser), tostring(OS), Location, CorrelationId  \n| mvexpand IPAddresses, Status, StatusDetails\n| extend Status = strcat(Status, \"-\", StatusDetails)\n| summarize Status = makeset(Status) by StartTimeUtc, EndTimeUtc, tostring(IPAddresses), UserPrincipalName, AppDisplayName, tostring(Browser), tostring(OS), Location, IPAddressCount, CorrelationId\n| where Status !has \"MFA requirement satisfied by claim in the token\"\n| summarize Status = makeset(Status), IPAddresses = makeset(IPAddresses), CorrelationIds = makeset(CorrelationId) by StartTimeUtc, EndTimeUtc, UserPrincipalName, AppDisplayName, tostring(Browser), tostring(OS), Location, IPAddressCount\n| extend timestamp = StartTimeUtc, AccountCustomEntity = UserPrincipalName, IPCustomEntity = tostring(IPAddresses)",
+        "queryPeriod": "P1D",
+        "queryFrequency": "P1D",
+        "sentinelEntitiesMappings": null,
+        "severity": "Low",
+        "suppressionDuration": "PT5H",
+        "suppressionEnabled": false,
+        "tactics": [
+          "CredentialAccess"
+        ],
+        "techniques": [
+          "T1110"
+        ],
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": "223db5c1-1bf8-47d8-8806-bed401b356a4",
+        "enabled": true
+      }
+    }
+  ]
+}
