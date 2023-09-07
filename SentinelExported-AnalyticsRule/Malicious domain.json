@@ -1,0 +1,82 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/43d77a29-7611-4807-8e54-156debd73123')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/43d77a29-7611-4807-8e54-156debd73123')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "Malicious domain",
+        "description": "",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "URL",
+            "fieldMappings": [
+              {
+                "columnName": "Remote_domain",
+                "identifier": "Url"
+              }
+            ]
+          },
+          {
+            "entityType": "Process",
+            "fieldMappings": [
+              {
+                "columnName": "InitiatingProcessCommandLine",
+                "identifier": "CommandLine"
+              }
+            ]
+          },
+          {
+            "entityType": "Host",
+            "fieldMappings": [
+              {
+                "columnName": "host",
+                "identifier": "HostName"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": {
+          "aggregationKind": "SingleAlert"
+        },
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": [],
+            "groupByCustomDetails": [],
+            "groupByEntities": [],
+            "lookbackDuration": "PT5H",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "union DeviceNetworkEvents, CommonSecurityLog\r\n| extend domaindfe = strcat(tostring(array_rotate_left(array_reverse(split(RemoteUrl,\".\")),0)[1]),\".\",tostring(array_rotate_left(array_reverse(split(RemoteUrl,\".\")),0)[0]))\r\n| extend domainfgt = strcat(tostring(array_rotate_left(array_reverse(split(DestinationHostName,\".\")),0)[1]),\".\",tostring(array_rotate_left(array_reverse(split(DestinationHostName,\".\")),0)[0]))\r\n| extend domain = iff(domainfgt == \".\", domaindfe, domainfgt)\r\n| extend host = iff(Type == \"CommonSecurityLog\",SourceIP, DeviceName)\r\n| where domain != \".\"\r\n| join ThreatIntelligenceIndicator on $left.domain == $right.DomainName\r\n| project TimeGenerated, ThreatType,InitiatingProcessFileName, ActionType, InitiatingProcessCommandLine, RemoteUrl, domain, host, Type\r\n| project-rename Action = ActionType, Date = TimeGenerated, Remote_domain = domain",
+        "queryPeriod": "P1D",
+        "queryFrequency": "P1D",
+        "sentinelEntitiesMappings": null,
+        "severity": "Medium",
+        "suppressionDuration": "PT5H",
+        "suppressionEnabled": false,
+        "tactics": [],
+        "techniques": null,
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": null,
+        "enabled": true
+      }
+    }
+  ]
+}
