@@ -1,0 +1,77 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/2d511958-e0a2-455a-a4f8-6c680b7f904c')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/2d511958-e0a2-455a-a4f8-6c680b7f904c')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "FGT - Detection of accepted connections from malicious IP addresses (based on reputation)",
+        "description": "",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "IP",
+            "fieldMappings": [
+              {
+                "columnName": "SourceIP",
+                "identifier": "Address"
+              }
+            ]
+          },
+          {
+            "entityType": "Malware",
+            "fieldMappings": [
+              {
+                "columnName": "Description",
+                "identifier": "Name"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": {
+          "aggregationKind": "SingleAlert"
+        },
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": [],
+            "groupByCustomDetails": [],
+            "groupByEntities": [],
+            "lookbackDuration": "PT5H",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "fortigate\r\n| where isnotempty( SourceIP) and DeviceAction in (\"accept\", \"login\")\r\n| join ThreatIntelligenceIndicator on $left.SourceIP == $right.NetworkIP",
+        "queryPeriod": "PT1H",
+        "queryFrequency": "PT1H",
+        "sentinelEntitiesMappings": null,
+        "severity": "High",
+        "suppressionDuration": "PT5H",
+        "suppressionEnabled": false,
+        "tactics": [
+          "Discovery",
+          "CredentialAccess",
+          "PrivilegeEscalation"
+        ],
+        "techniques": null,
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": null,
+        "enabled": true
+      }
+    }
+  ]
+}
