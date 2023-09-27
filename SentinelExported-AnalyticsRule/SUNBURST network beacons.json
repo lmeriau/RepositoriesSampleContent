@@ -1,0 +1,107 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/d0d1b87b-c16c-4021-b774-542b50445c7d')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/d0d1b87b-c16c-4021-b774-542b50445c7d')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "SUNBURST network beacons",
+        "description": "Identifies SolarWinds SUNBURST domain beacon IOCs in DeviceNetworkEvents\nReferences:\n- https://www.fireeye.com/blog/threat-research/2020/12/evasive-attacker-leverages-solarwinds-supply-chain-compromises-with-sunburst-backdoor.html\n- https://gist.github.com/olafhartong/71ffdd4cab4b6acd5cbcd1a0691ff82f",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "Account",
+            "fieldMappings": [
+              {
+                "columnName": "AccountCustomEntity",
+                "identifier": "FullName"
+              }
+            ]
+          },
+          {
+            "entityType": "Host",
+            "fieldMappings": [
+              {
+                "columnName": "HostCustomEntity",
+                "identifier": "FullName"
+              }
+            ]
+          },
+          {
+            "entityType": "IP",
+            "fieldMappings": [
+              {
+                "columnName": "IPCustomEntity",
+                "identifier": "Address"
+              }
+            ]
+          },
+          {
+            "entityType": "URL",
+            "fieldMappings": [
+              {
+                "columnName": "URLCustomEntity",
+                "identifier": "Url"
+              }
+            ]
+          },
+          {
+            "entityType": "FileHash",
+            "fieldMappings": [
+              {
+                "columnName": "HashAlgorithm",
+                "identifier": "Algorithm"
+              },
+              {
+                "columnName": "FileHashCustomEntity",
+                "identifier": "Value"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": {
+          "aggregationKind": "SingleAlert"
+        },
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": [],
+            "groupByCustomDetails": [],
+            "groupByEntities": [],
+            "lookbackDuration": "PT5H",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "let SunburstURL=dynamic([\"panhardware.com\",\"databasegalore.com\",\"avsvmcloud.com\",\"freescanonline.com\",\"thedoccloud.com\",\"deftsecurity.com\"]);\nDeviceNetworkEvents\n| where ActionType == \"ConnectionSuccess\"\n| where RemoteUrl in(SunburstURL)\n| extend\n    timestamp = TimeGenerated,\n    AccountCustomEntity = iff(isnotempty(InitiatingProcessAccountUpn), InitiatingProcessAccountUpn, InitiatingProcessAccountName),\n    HostCustomEntity = DeviceName,\n    FileHashCustomEntity = InitiatingProcessMD5, \n    HashAlgorithm = 'MD5',\n    URLCustomEntity = RemoteUrl,\n    IPCustomEntity = RemoteIP",
+        "queryPeriod": "P1D",
+        "queryFrequency": "P1D",
+        "sentinelEntitiesMappings": null,
+        "severity": "Medium",
+        "suppressionDuration": "PT5H",
+        "suppressionEnabled": false,
+        "tactics": [
+          "Execution",
+          "Persistence"
+        ],
+        "techniques": [],
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": "ce1e7025-866c-41f3-9b08-ec170e05e73e",
+        "enabled": true
+      }
+    }
+  ]
+}
