@@ -1,0 +1,66 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/438aa434-6110-4fb1-98f4-0beea5d0666b')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/438aa434-6110-4fb1-98f4-0beea5d0666b')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "Port Scan Detected",
+        "description": "This alert creates an incident when a source IP addresses attempt to communicate with a large amount of distinct ports within a short period.",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "IP",
+            "fieldMappings": [
+              {
+                "columnName": "IPCustomEntity",
+                "identifier": "Address"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": null,
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": null,
+            "groupByCustomDetails": null,
+            "groupByEntities": [],
+            "lookbackDuration": "PT5M",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "let timeframe = ago(1h);\n let threshold = 50;\n SophosXGFirewall\n | where TimeGenerated >= timeframe\n | where Log_Type =~ \"Firewall\"\n | where not(ipv4_is_match(\"10.0.0.0\",Src_IP,8) or ipv4_is_match(\"172.16.0.0\",Src_IP,12) or ipv4_is_match(\"192.168.0.0\",Src_IP,16))\n | summarize dcount(Dst_Port) by Src_IP, bin(TimeGenerated, 5m)\n | where dcount_Dst_Port > threshold\n | extend timestamp = TimeGenerated, IPCustomEntity = Src_IP",
+        "queryPeriod": "PT1H",
+        "queryFrequency": "PT1H",
+        "sentinelEntitiesMappings": null,
+        "severity": "Medium",
+        "suppressionDuration": "PT1H",
+        "suppressionEnabled": false,
+        "tactics": [
+          "Discovery"
+        ],
+        "techniques": [
+          "T1046"
+        ],
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": "427e4c9e-8cf4-4094-a684-a2d060dbca38",
+        "enabled": false
+      }
+    }
+  ]
+}
