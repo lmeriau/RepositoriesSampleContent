@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/a90b14a6-a0e9-11eb-89ea-029778b6f45f')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/a90b14a6-a0e9-11eb-89ea-029778b6f45f')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "Possible Remote Administration Tools Detected (via office365) by SOC Prime Team",
+        "description": "Remote administration tool is software that helps the administrator or attacker to receive full control of the targeted device. Technique: T1204.",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": null,
+        "eventGroupingSettings": null,
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": null,
+            "groupByCustomDetails": null,
+            "groupByEntities": [],
+            "lookbackDuration": "PT5M",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "OfficeActivity | where ((Operation == \"FileUploaded\" or Operation == \"FileAccessed\" or Operation == \"FileDownloaded\") and (SourceFileName contains \"famitrfc\" or SourceFileName contains \"g2fileh\" or SourceFileName contains \"g2host\" or SourceFileName contains \"g2mainh\" or SourceFileName contains \"g2printh\" or SourceFileName contains \"g2svc\" or SourceFileName contains \"g2tray\" or SourceFileName contains \"gopcsrv\" or SourceFileName contains \"lmiguardiansvc\" or SourceFileName contains \"logmein\" or SourceFileName contains \"showmypc\" or SourceFileName contains \"vncviewer\" or SourceFileName contains \"winvncsc\" or SourceFileName contains \"aa_v\" or SourceFileName contains \"awhost32\" or SourceFileName contains \"awrem32\" or SourceFileName contains \"dwrcs\" or SourceFileName contains \"g2comm\" or SourceFileName contains \"lmiignition\" or SourceFileName contains \"mstsc\" or SourceFileName contains \"radmin\" or SourceFileName contains \"smpcsetup\" or SourceFileName contains \"teamviewer\" or SourceFileName contains \"termsrv\" or SourceFileName contains \"winvnc\"))",
+        "queryPeriod": "PT12H",
+        "queryFrequency": "PT12H",
+        "sentinelEntitiesMappings": null,
+        "severity": "High",
+        "suppressionDuration": "PT12H",
+        "suppressionEnabled": true,
+        "tactics": [
+          "Execution"
+        ],
+        "techniques": null,
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": null,
+        "enabled": true
+      }
+    }
+  ]
+}
