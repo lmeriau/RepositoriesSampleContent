@@ -1,0 +1,66 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/f0fe3fa5-59f3-4b40-9f85-d30fd99998a2')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/f0fe3fa5-59f3-4b40-9f85-d30fd99998a2')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "Azure AD - AD - Account Created and Deleted in Short Timeframe ",
+        "description": "",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "Account",
+            "fieldMappings": [
+              {
+                "columnName": "UPN",
+                "identifier": "FullName"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": {
+          "aggregationKind": "SingleAlert"
+        },
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": [],
+            "groupByCustomDetails": [],
+            "groupByEntities": [],
+            "lookbackDuration": "PT5H",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "AuditLogs\r\n| where OperationName =~ \"Add user\"\r\n| extend UPN = tostring(TargetResources[0].userPrincipalName)\r\n| join kind=inner (AuditLogs\r\n| where OperationName =~ \"Delete user\"\r\n| extend UPN = tostring(TargetResources[0].userPrincipalName)\r\n| extend IPAddress = tostring(parse_json(tostring(InitiatedBy.user)).ipAddress)) on UPN\r\n| union (SecurityEvent\r\n| where EventID == \"4720\"\r\n| extend UPN = TargetUserName\r\n| join kind=inner ( SecurityEvent\r\n| where EventID == \"4726\"\r\n| extend UPN = TargetUserName) on UPN)\r\n| extend timedelta = TimeGenerated1 - TimeGenerated\r\n| where timedelta < timespan(24h) and timedelta > timespan(0h)\r\n| project-reorder TimeGenerated, TimeGenerated1, timedelta",
+        "queryPeriod": "P1D",
+        "queryFrequency": "P1D",
+        "sentinelEntitiesMappings": null,
+        "severity": "High",
+        "suppressionDuration": "PT5H",
+        "suppressionEnabled": false,
+        "tactics": [
+          "InitialAccess"
+        ],
+        "techniques": null,
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": null,
+        "enabled": true
+      }
+    }
+  ]
+}
