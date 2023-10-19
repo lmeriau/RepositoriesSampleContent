@@ -1,0 +1,75 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/e9db1fca-453d-42c2-89c0-d24dba148a59')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/e9db1fca-453d-42c2-89c0-d24dba148a59')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "Azure AD - Impossible travel - [Final_V1.2]",
+        "description": "",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "Account",
+            "fieldMappings": [
+              {
+                "columnName": "UserPrincipalName",
+                "identifier": "FullName"
+              }
+            ]
+          },
+          {
+            "entityType": "File",
+            "fieldMappings": [
+              {
+                "columnName": "countryList",
+                "identifier": "Name"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": {
+          "aggregationKind": "SingleAlert"
+        },
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": [],
+            "groupByCustomDetails": [],
+            "groupByEntities": [
+              "Account"
+            ],
+            "lookbackDuration": "PT5H",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "let timeframe = 6;\r\nlet AD_UsersWithHighNumOfCountries =\r\n\tSigninLogs\r\n\t| where ResultType == \"0\"\r\n\t| where isnotempty(Location)\r\n\t| summarize numOfCountries = dcount(Location) by UserPrincipalName\r\n\t| where numOfCountries > 1\r\n\t| distinct UserPrincipalName\r\n;\r\nSigninLogs\r\n| where ResultType == \"0\" and UserPrincipalName in (AD_UsersWithHighNumOfCountries)\r\n| where isnotempty(Location)\r\n| where TimeGenerated > ago(1h)\r\n| extend id = new_guid(), ref_timestamp = TimeGenerated\r\n| project id, ref_timestamp, UserPrincipalName\r\n| join kind=leftouter (\r\n\tSigninLogs\r\n\t| where ResultType == \"0\"\r\n\t| where isnotempty(Location)\r\n\t| summarize timestamps = make_list(TimeGenerated), countries = make_list(Location) by UserPrincipalName\r\n\t| project UserPrincipalName, array_sort_desc(timestamps, countries)\r\n)\r\non UserPrincipalName\r\n| mv-expand timestamps_sorted, countries_sorted\r\n| project id, ref_timestamp, UserPrincipalName, timestamp = todatetime(timestamps_sorted), country = tostring(countries_sorted)\r\n| extend timestamp_diff = datetime_diff(\"hour\", ref_timestamp, timestamp)\r\n| where timestamp_diff >= 0 and timestamp_diff <= timeframe\r\n| summarize numOfCountries = dcount(country), timestamps = make_list(timestamp), countries = array_sort_asc(make_set(country)) by id, UserPrincipalName\r\n| where numOfCountries > 1\r\n| extend max_timestamp = todatetime(timestamps[0])\r\n| extend countryList = strcat_array(countries, \", \")\r\n| summarize arg_max(max_timestamp, *) by UserPrincipalName, numOfCountries\r\n| summarize arg_max(numOfCountries, *) by UserPrincipalName\r\n| project max_timestamp, UserPrincipalName, countryList",
+        "queryPeriod": "P2D",
+        "queryFrequency": "P1D",
+        "sentinelEntitiesMappings": null,
+        "severity": "Low",
+        "suppressionDuration": "PT5H",
+        "suppressionEnabled": false,
+        "tactics": [],
+        "techniques": null,
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": null,
+        "enabled": true
+      }
+    }
+  ]
+}
