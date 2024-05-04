@@ -1,0 +1,73 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/0b43c108-a18d-4d2e-966d-4e9493b7268a')]",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/0b43c108-a18d-4d2e-966d-4e9493b7268a')]",
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "kind": "Scheduled",
+      "apiVersion": "2023-02-01-preview",
+      "properties": {
+        "displayName": "AWS - Activities from malicious IP addresses - [Final_V1.0]",
+        "description": "",
+        "alertDetailsOverride": null,
+        "customDetails": null,
+        "entityMappings": [
+          {
+            "entityType": "Account",
+            "fieldMappings": [
+              {
+                "columnName": "UPN",
+                "identifier": "FullName"
+              }
+            ]
+          },
+          {
+            "entityType": "Malware",
+            "fieldMappings": [
+              {
+                "columnName": "threatCategory",
+                "identifier": "Name"
+              }
+            ]
+          }
+        ],
+        "eventGroupingSettings": {
+          "aggregationKind": "SingleAlert"
+        },
+        "incidentConfiguration": {
+          "createIncident": true,
+          "groupingConfiguration": {
+            "enabled": false,
+            "groupByAlertDetails": [],
+            "groupByCustomDetails": [],
+            "groupByEntities": [],
+            "lookbackDuration": "PT5H",
+            "matchingMethod": "AllEntities",
+            "reopenClosedIncident": false
+          }
+        },
+        "query": "ThreatIntelligenceIndicator\r\n| where TimeGenerated > ago(14d) and ExpirationDateTime > now()\r\n| where Active == true\r\n| where isnotempty(NetworkIP)\r\n| summarize arg_max(TimeGenerated, *) by NetworkIP\r\n| extend threatCategory = iff(Description has \"iType: \", extract(\"iType: ([^;]+)\", 1, Description), ThreatType)\r\n| join kind=innerunique (\r\n\tAWSCloudTrail\r\n\t| where TimeGenerated > ago(1h)\r\n\t| extend UPN = iff(isnotempty(UserIdentityUserName), UserIdentityUserName, iff(isnotempty(SessionIssuerUserName), SessionIssuerUserName, UserIdentityType))\r\n\t| summarize arg_max(TimeGenerated, *) by EventName, UPN, SourceIpAddress\r\n)\r\non $left.NetworkIP == $right.SourceIpAddress\r\n| project TimeGenerated1, EventName, UPN, SourceIpAddress, threatCategory",
+        "queryPeriod": "P14D",
+        "queryFrequency": "PT1H",
+        "sentinelEntitiesMappings": null,
+        "severity": "High",
+        "suppressionDuration": "PT5H",
+        "suppressionEnabled": false,
+        "tactics": [],
+        "techniques": null,
+        "templateVersion": null,
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "alertRuleTemplateName": null,
+        "enabled": true
+      }
+    }
+  ]
+}
